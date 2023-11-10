@@ -24,7 +24,7 @@ def split_sequence(sequence, n_steps):
         y.append(seq_y)
     return np.array(X), np.array(y)
 
-with open('DataByHour.csv', 'r') as incomingData:
+with open('DataByHourWithWeather.csv', 'r') as incomingData:
     readFile = csv.reader(incomingData)
     strictData = []
     dayData = []
@@ -48,8 +48,8 @@ with open('DataByHour.csv', 'r') as incomingData:
                 dayCounter += 1
             
         pastDay = row[1]
-            
-        strictData.append([float(row[5]), dayType])
+        # row 5 in kwh, row 6 is temp, row 7 is humidity, row 4 is hour, day type is weekend (Y/N)
+        strictData.append([float(row[5]), dayType, int(row[4]), float(row[6]), float(row[7])])
         dayData.append([row[1], row[2], row[3], row[4]])
 
 #dataWithWeekend = pd.DataFrame(strictData, columns=["Demand (kWh)", "Weekend(Y/N)"])
@@ -60,8 +60,8 @@ for day in dayData:
     dayDataStr.append(strDay)
 
 
-trainData = strictData[:int((len(strictData)//1.31))]
-testData = strictData[int((-len(strictData)//1.31)):]
+trainData = strictData[:int((len(strictData)//1.33))]
+testData = strictData[int((-len(strictData)//1.33)):]
 n_steps = 36
 XTrain, yTrainWithDay = split_sequence(trainData, n_steps+1)
 XTest, yTestWithDay = split_sequence(testData, n_steps+1)
@@ -73,7 +73,7 @@ yTrain = []
 for row in yTrainWithDay:
     yTrain.append(row[0])
 yTrain = np.array(yTrain)
-n_features = 2
+n_features = 5
 
 XTrain = XTrain.reshape((XTrain.shape[0], XTrain.shape[1], n_features))
 
@@ -84,7 +84,7 @@ model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
 
 print("Training model...")
-model.fit(XTrain, yTrain, epochs=100, verbose=1)
+model.fit(XTrain, yTrain, epochs=60, verbose=1)
 print("Completed training of model.")
 
 XTest = XTest.reshape(XTest.shape[0], XTest.shape[1], n_features)
@@ -138,9 +138,54 @@ print("R^2 from study: 0.8811")
 print()
 print()
 
+# weekend in september
 timesArray = np.array(dayDataStr)
-plt.plot(timesArray[(1507 + int((len(strictData)//1.3))):(1675 + int((len(strictData)//1.3)))], actualDF.iloc[1507:1675], label='Actual')
-plt.plot(timesArray[(1507 + int((len(strictData)//1.3))):(1675 + int((len(strictData)//1.3)))], predictionDF.iloc[1507:1675], label='Predicted')
+startHour = 13 + (24*7)
+endHour = 63 + (24*7)
+lengthTrain = len(XTrain)
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], actualDF.iloc[startHour:endHour], label='Actual')
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], predictionDF.iloc[startHour:endHour], label='Predicted')
 plt.xticks(rotation=80, fontsize = 5)
 plt.legend()
+plt.title("Weekend in September")
+plt.xlabel("Day")
+plt.ylabel("kWh Demand")
+plt.show()
+
+# week during september
+startHour = 63 + (24*7)
+endHour = 63 + (5*24) + (24*7)
+lengthTrain = len(XTrain)
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], actualDF.iloc[startHour:endHour], label='Actual')
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], predictionDF.iloc[startHour:endHour], label='Predicted')
+plt.xticks(rotation=80, fontsize = 5)
+plt.legend()
+plt.title("Week in September")
+plt.xlabel("Day")
+plt.ylabel("kWh Demand")
+plt.show()
+
+# weekend during January
+startHour = 13 + (24*7) + (24*7*17) # would be 24*7*13 for quarter of year, but september is a little short
+endHour = 63 + (24*7) + (24*7*17)
+lengthTrain = len(XTrain)
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], actualDF.iloc[startHour:endHour], label='Actual')
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], predictionDF.iloc[startHour:endHour], label='Predicted')
+plt.xticks(rotation=80, fontsize = 5)
+plt.legend()
+plt.title("Weekend in January")
+plt.xlabel("Day")
+plt.ylabel("kWh Demand")
+plt.show()
+
+startHour = 63 + (24*7) + (24*7*17)
+endHour = 63 + (24*7) + (5*24) + (24*7*17)
+lengthTrain = len(XTrain)
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], actualDF.iloc[startHour:endHour], label='Actual')
+plt.plot(timesArray[(startHour + lengthTrain):(endHour + lengthTrain)], predictionDF.iloc[startHour:endHour], label='Predicted')
+plt.xticks(rotation=80, fontsize = 5)
+plt.legend()
+plt.title("Week in January")
+plt.xlabel("Day")
+plt.ylabel("kWh Demand")
 plt.show()
